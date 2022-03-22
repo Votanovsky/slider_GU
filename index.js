@@ -186,10 +186,11 @@ class GL {
 			100
 		);
 		this.camera.position.z = 50;
-
+		const canvas = document.querySelector('.dom-gl')
 		this.renderer = new THREE.WebGLRenderer({
 			alpha: true,
-			antialias: true
+			antialias: true,
+			canvas
 		});
 		this.renderer.setPixelRatio(
 			gsap.utils.clamp(1.5, 1, window.devicePixelRatio)
@@ -203,15 +204,8 @@ class GL {
 	}
 
 	init() {
-		this.addToDom();
 		this.addEvents();
 		this.run();
-	}
-
-	addToDom() {
-		const canvas = this.renderer.domElement;
-		canvas.classList.add("dom-gl");
-		document.body.appendChild(canvas);
 	}
 
 	addEvents() {
@@ -338,7 +332,7 @@ class GlSlider extends GlObject {
 			uMouseOverAmp: { value: 0 },
 			uAnimating: { value: false },
 			uRadius: { value: 0.08 },
-			uTranslating: { value: true }
+			uTranslating: { value: false }
 		};
 
 		this.imageScale = 1;
@@ -355,6 +349,9 @@ class GlSlider extends GlObject {
 		};
 
 		this.mesh = new THREE.Mesh(this.geometry, this.material);
+		setTimeout(() => {
+		this.mesh.position.set(0, 1.44 * slider.DOM.el.previousElementSibling.scrollHeight / screen.height, 0)
+		}, 2000)
 		this.add(this.mesh);
 
 		Gl.scene.add(this);
@@ -439,29 +436,6 @@ class GlSlider extends GlObject {
 	addEvents() {
 		this.el.addEventListener("mouseenter", () => (mouseOver = true));
 		this.el.addEventListener("mouseleave", () => (mouseOver = false));
-		this.el.addEventListener("mousedown", () => (mouseDown = true));
-		this.el.addEventListener("mouseup", () => (mouseDown = false));
-	}
-
-	scaleImage(direction) {
-		const imageTl = gsap.timeline({
-			defaults: {
-				duration: 1.2,
-				ease: "elastic.out(1, 1)",
-				onUpdate: () => {
-					this.resize();
-				}
-			}
-		});
-		if (direction == "up") {
-			imageTl.to(this.el, {
-				scale: window.innerHeight / 600
-			});
-		} else if (direction == "down") {
-			imageTl.to(this.el, {
-				scale: 1
-			});
-		}
 	}
 
 	run() {
@@ -586,114 +560,6 @@ class Cursor {
 	}
 }
 
-class Cursors {
-	constructor() {
-		this.DOM = {};
-
-		this.DOM.cursorEls = {
-			large: document.querySelector(".cursor--large"),
-			small: document.querySelector(".cursor--small"),
-			close: document.querySelector(".cursor--close")
-		};
-
-		this.cursors = {
-			large: new Cursor(this.DOM.cursorEls.large),
-			small: new Cursor(this.DOM.cursorEls.small),
-			close: new Cursor(this.DOM.cursorEls.close)
-		};
-
-		this.cursors.small.setTranslateLerpAmount(0.85);
-		this.cursors.close.opaque(0).scale(0.5).setTranslateLerpAmount(0.5);
-	}
-
-	init() {
-		Object.values(this.cursors).forEach((cursor) => {
-			cursor.init();
-		});
-		this.initEvents();
-	}
-
-	initEvents() {
-		this.initEventsOnElements();
-		this.initEventsOnImage();
-	}
-
-	initEventsOnElements() {
-		const onMouseEnter = () => {
-			this.cursors.large.scale(2).opaque(0);
-			this.cursors.small.scale(5);
-		};
-
-		const onMouseLeave = () => {
-			this.cursors.large.scale(1).opaque(1);
-			this.cursors.small.scale(1);
-		};
-
-		const onMouseDown = () => {
-			this.cursors.small.scale(4);
-		};
-
-		const onMouseUp = () => {
-			this.cursors.small.scale(5);
-		};
-
-		[
-			...document.querySelectorAll("a"),
-			...document.querySelectorAll("button")
-		].forEach((element) => {
-			element.addEventListener("mouseenter", onMouseEnter);
-			element.addEventListener("mouseleave", onMouseLeave);
-			element.addEventListener("mousedown", onMouseDown);
-			element.addEventListener("mouseup", onMouseUp);
-		});
-	}
-
-	initEventsOnImage() {
-		const imageWrapper = document.querySelector(".slider__image--wrapper");
-
-		const onMouseDown = () => {
-			this.cursors.large.scale(2).opaque(0);
-			this.cursors.small.scale(5);
-		};
-
-		const onMouseUp = () => {
-			this.cursors.large.scale(1).opaque(1);
-			this.cursors.small.scale(1);
-		};
-
-		imageWrapper.addEventListener("mousedown", onMouseDown);
-		imageWrapper.addEventListener("mouseup", onMouseUp);
-	}
-
-	initEventsOnSlider(slider) {
-		const imageWrapper = document.querySelector(".slider__image--wrapper");
-
-		const onMouseEnter = () => {
-			this.cursors.large.scale(2).opaque(0);
-			this.cursors.small.scale(5).setTranslateLerpAmount(0.25);
-			this.cursors.close.opaque(1).scale(1);
-		};
-
-		const onMouseLeave = () => {
-			this.cursors.large.scale(1).opaque(1);
-			this.cursors.small.scale(1).setTranslateLerpAmount(0.85);
-			this.cursors.close.opaque(0).scale(0.5);
-		};
-
-		slider.onFullscreen(() => {
-			onMouseEnter();
-			imageWrapper.addEventListener("mouseenter", onMouseEnter);
-			imageWrapper.addEventListener("mouseleave", onMouseLeave);
-		});
-
-		slider.offFullscreen(() => {
-			onMouseLeave();
-			imageWrapper.removeEventListener("mouseenter", onMouseEnter);
-			imageWrapper.removeEventListener("mouseleave", onMouseLeave);
-		});
-	}
-}
-
 class Slideinfo {
 	constructor(el) {
 		this.DOM = { el: el };
@@ -756,12 +622,9 @@ class Slideshow {
 			translateX: -100,
 			opacity: 0
 		});
-
 		gsap.set(this.DOM.imageWrapperEl, {
-			translateY: "150%",
-			onUpdate: () => {
-				this.GlSlider.setBounds();
-			}
+			translateY: 0,
+			opacity: 1
 		});
 	}
 
@@ -777,18 +640,6 @@ class Slideshow {
 			.addLabel("upcoming", 1.25);
 		tl
 			.to(
-				this.DOM.imageWrapperEl,
-				{
-					duration: 1.25,
-					translateY: 0,
-					ease: "sine.out",
-					onUpdate: () => {
-						this.GlSlider.setBounds();
-					}
-				},
-				"start"
-			)
-			.to(
 				this.GlSlider.material.uniforms.uAmplitude,
 				{
 					duration: 1,
@@ -796,10 +647,7 @@ class Slideshow {
 					repeat: 1,
 					yoyo: true,
 					yoyoEase: "sine.out",
-					ease: "expo.out",
-					onComplete: () => {
-						this.GlSlider.material.uniforms.uTranslating = false;
-					}
+					ease: "expo.out"
 				},
 				"start"
 			)
@@ -833,112 +681,18 @@ class Slideshow {
 	initEvents() {
 		this.onClickPrevEv = () => this.navigate("prev");
 		this.onClickNextEv = () => this.navigate("next");
-		this.onImageClickEv = () => {
-			if (this.isAnimating) return;
-
-			clicked = !clicked;
-
-			const currentSlideInfo = this.slideInfos[this.current];
-
-			const tl = gsap
-				.timeline({
-					defaults: { duration: 1, ease: "power4.inOut" },
-					onStart: () => {
-						this.isAnimating = true;
-						if (clicked) {
-							this.GlSlider.scaleImage("up");
-							if (this.onFullscreenCallbackFn) this.onFullscreenCallbackFn();
-						} else {
-							this.GlSlider.scaleImage("down");
-							if (this.offFullscreenCallbackFn) this.offFullscreenCallbackFn();
-						}
-					},
-					onComplete: () => {
-						this.isAnimating = false;
-					}
-				})
-				.addLabel("start", clicked ? 0 : 0.2);
-
-			tl
-				.fromTo(
-					[currentSlideInfo.DOM.text.index, currentSlideInfo.DOM.text.title],
-					{
-						yPercent: clicked ? 0 : 120,
-						rotation: clicked ? 0 : -3
-					},
-					{
-						yPercent: clicked ? -120 : 0,
-						rotation: clicked ? 3 : 0,
-						stagger: clicked ? 0.02 : -0.02
-					},
-					"start"
-				)
-				.fromTo(
-					currentSlideInfo.DOM.text.descriptionLines,
-					{
-						yPercent: clicked ? 0 : 100
-					},
-					{
-						yPercent: clicked ? -100 : 0,
-						stagger: 0.05
-					},
-					"start"
-				)
-				.fromTo(
-					this.DOM.navigation.prev,
-					{
-						translateX: clicked ? 0 : 100,
-						opacity: clicked ? 1 : 0
-					},
-					{
-						translateX: clicked ? -100 : 0,
-						opacity: clicked ? 0 : 1
-					},
-					"start"
-				)
-				.fromTo(
-					this.DOM.navigation.next,
-					{
-						translateX: clicked ? 0 : -100,
-						opacity: clicked ? 1 : 0
-					},
-					{
-						translateX: clicked ? 100 : 0,
-						opacity: clicked ? 0 : 1
-					},
-					"start"
-				)
-				.set([this.DOM.navigation.prev, this.DOM.navigation.next], {
-					pointerEvents: clicked ? "none" : "auto"
-				});
-		};
-
+		
 		this.DOM.navigation.prev.addEventListener("click", () =>
 			this.onClickPrevEv()
 		);
 		this.DOM.navigation.next.addEventListener("click", () =>
 			this.onClickNextEv()
 		);
-		this.DOM.imageWrapperEl.addEventListener("click", () =>
-			this.onImageClickEv()
-		);
 	}
 
 	onSlideChange(callback) {
 		if (typeof callback == "function") {
 			this.onSlideChangeCallbackFn = callback;
-		}
-	}
-
-	onFullscreen(callback) {
-		if (typeof callback == "function") {
-			this.onFullscreenCallbackFn = callback;
-		}
-	}
-
-	offFullscreen(callback) {
-		if (typeof callback == "function") {
-			this.offFullscreenCallbackFn = callback;
 		}
 	}
 
@@ -969,13 +723,13 @@ class Slideshow {
 			.timeline({
 				defaults: { duration: 1, ease: "power4.inOut" },
 				onStart: () => {
+					currentSlideInfo.DOM.el.classList.remove("slide--current");
 					this.GlSlider.switchTextures(this.current, increment);
 					if (this.onSlideChangeCallbackFn)
 						this.onSlideChangeCallbackFn(this.current);
 					this.isAnimating = true;
 				},
 				onComplete: () => {
-					currentSlideInfo.DOM.el.classList.remove("slide--current");
 					this.isAnimating = false;
 				}
 			})
@@ -1032,7 +786,7 @@ class Slideshow {
 
 // -------- MAIN CODE [START] --------
 
-const cursors = new Cursors();
+// const cursors = new Cursors();
 
 Splitting();
 
@@ -1040,50 +794,13 @@ const bgColors = ["#F45626", "#DB4834", "#F45626", "#DB4834"];
 
 const masterTl = gsap.timeline();
 
+const slider = new Slideshow(document.querySelector(".slider"));
 preloadImages(document.querySelectorAll(".slider__image")).then(() => {
-	const slider = new Slideshow(document.querySelector(".slider"));
 	slider.init();
 
-	const loadedAnimationTl = gsap
-		.timeline({
-			onStart: () => {
-				gsap.set(".text__row .text", { autoAlpha: 1 });
-			}
-		})
-		.from(".text__row .text", {
-			duration: 3,
-			translateY: (i) => -100 + i * -25 + "%",
-			ease: "expo.out",
-			stagger: 0.1
-		})
-		.to(".text__row .text", {
-			duration: 3,
-			translateY: (i) => 100 + i * 25 + "%",
-			ease: "expo.in",
-			stagger: 0.25
-		})
-		.to(".bg__transition--slide", {
-			duration: 1,
-			scaleY: 0,
-			transformOrigin: "top center",
-			ease: "expo.out",
-			onComplete: () => {
-				slider.initAnimation();
-				gsap.set(".loading__wrapper", {
-					pointerEvents: "none",
-					autoAlpha: 0
-				});
-			}
-		});
+	slider.initAnimation()
 
 	const pageAnimationTl = gsap
-		.timeline({
-			delay: loadedAnimationTl.duration(),
-			onComplete: () => {
-				cursors.init();
-				cursors.initEventsOnSlider(slider);
-			}
-		})
 		.from(
 			[
 				".frame__logo",
@@ -1100,7 +817,6 @@ preloadImages(document.querySelectorAll(".slider__image")).then(() => {
 			}
 		);
 
-	masterTl.add(loadedAnimationTl, 0);
 	masterTl.add(pageAnimationTl, pageAnimationTl.duration() - 0.5);
 
 	slider.onSlideChange((currentSlideIndex) => {
